@@ -6,15 +6,21 @@ export default class Cell extends Component {
     this.cost = parseInt(Math.random() * 255).toString(16);
   }
 	render() {
+		const cost = this.cost;
   	const style = {
     	display: 'inline-block',
       position: 'relative',
-    	backgroundColor: `#${this.cost}0000`,
+    	backgroundColor: `#${cost}${cost}${cost}`,
       width: 10,
       height: 10,
       padding: 0,
       margin: 0
     };
-  	return <div style={style}></div>;
+		const onClick = () => {
+			if (this.props.onNewGoal) {
+				this.props.onNewGoal(this.props.point);
+			}
+		};
+  	return <div style={style} onClick={onClick}></div>;
   }
 }

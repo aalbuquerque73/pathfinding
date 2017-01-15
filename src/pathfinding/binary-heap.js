@@ -1,4 +1,4 @@
-class BinaryHeap extends Array {
+export default class BinaryHeap extends Array {
 	constructor(comp = (a,b) => a > b) {
   	super();
     this._comp = comp;

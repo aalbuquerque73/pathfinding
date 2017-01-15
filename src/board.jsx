@@ -1,5 +1,6 @@
 import React, { Component } from 'react';
 import Cell from './cell';
+import Pathfind from './pathfinding/a-star';
 
 export default class Board extends Component {
 	constructor() {
@@ -8,34 +9,56 @@ export default class Board extends Component {
     this.state = {
     	points: [],
       start: { x: -1, y: -1 },
-      end: { x: -1, y: -1 }
+      goal: { x: -1, y: -1 }
     };
   }
 
-  componentWillReceiveProps() {}
+	get(point) {
+		return this.grid[point.y][point.x];
+	}
+
+	findGoal(path) {
+		this.setState({
+			start: path.start,
+			goal: path.goal
+		});
+		if (this.pathfind) {
+			this.setState({
+				points: this.pathfind.find(path.start, path.goal)
+			});
+		} else {
+			this.setState({
+				points: [ path.start, path.goal ]
+			});
+		}
+	}
+
+  componentWillReceiveProps(props) {
+		const path = props.path;
+		this.findGoal(path);
+	}
 
   componentWillMount() {
-  	const mapSizeTokens = this.props.map.split('x');
+		const { map, size, onNewGoal } = this.props;
+
+  	const mapSizeTokens = map.split('x');
     this.width = parseInt(mapSizeTokens[0]);
     this.height = parseInt(mapSizeTokens[1]);
-		
+
     for(let h=0; h<this.height; ++h) {
     	const line = [];
       for(let w=0; w<this.width; ++w) {
       	const key = `${w}-${h}`;
-      	line.push(<Cell key={key} size={this.props.size} />);
+      	line.push(<Cell key={key} point={{x:w,y:h}} size={size} onNewGoal={onNewGoal} />);
       }
       this.grid.push(line);
     }
+		this.pathfind = new Pathfind(this);
   }
 
   componentDidMount() {
   	const path = this.props.path;
-  	this.setState({
-    	points: [ path.start, path.end ],
-      start: path.start,
-      end: path.end
-    });
+  	this.findGoal(path);
   }
 
 	render() {
@@ -63,9 +86,9 @@ export default class Board extends Component {
     	x: this.state.start.x * size + size / 2,
       y: this.state.start.y * size + size / 2
     };
-    const end = {
-    	x: this.state.end.x * size + size / 2,
-      y: this.state.end.y * size + size / 2
+    const goal = {
+    	x: this.state.goal.x * size + size / 2,
+      y: this.state.goal.y * size + size / 2
     };
     const points = this.state.points
     	.map(p => `${p.x * size + size / 2},${p.y * size + size / 2}`)
@@ -79,7 +102,7 @@ export default class Board extends Component {
       <svg style={svgStyle} viewBox={viewBox} version="1.1">
         <polyline points={points} fill="none" stroke="green" strokeWidth="3"/>
         <circle cx={start.x} cy={start.y} r="2" fill="blue"/>
-        <circle cx={end.x} cy={end.y} r="2" fill="red"/>
+        <circle cx={goal.x} cy={goal.y} r="2" fill="red"/>
     	</svg>
     </div>);
   }
