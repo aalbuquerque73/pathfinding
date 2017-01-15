@@ -30,75 +30,14 @@ function OctileDistance() {
   return max(current.x, current.y) + (sqrt2 - 1) * min(current.x, current.y);
 }
 
-function Neighbours(x, y) {
-	var	N = y - 1,
-	S = y + 1,
-	E = x + 1,
-	W = x - 1,
-	myN = N > -1 && this.canWalk(x, N),
-	myS = S < this.worldHeight && this.canWalk(x, S),
-	myE = E < this.worldWidth && this.canWalk(E, y),
-	myW = W > -1 && this.canWalk(W, y),
-	result = [];
-	if(myN)
-    result.push({x:x, y:N});
-	if(myE)
-    result.push({x:E, y:y});
-	if(myS)
-    result.push({x:x, y:S});
-	if(myW)
-    result.push({x:W, y:y});
-	this.findNeighbours(myN, myS, myE, myW, N, S, E, W, result);
-	return result;
-}
-
-// returns every available North East, South East,
-// South West or North West cell - no squeezing through
-// "cracks" between two diagonals
-function DiagonalNeighbours(myN, myS, myE, myW, N, S, E, W, result) {
-	if(myN) {
-		if(myE && this.canWalk(E, N))
-		  result.push({x:E, y:N});
-		if(myW && this.canWalk(W, N))
-		  result.push({x:W, y:N});
-	}
-	if(myS) {
-		if(myE && this.canWalk(E, S))
-		  result.push({x:E, y:S});
-		if(myW && this.canWalk(W, S))
-		  result.push({x:W, y:S});
-	}
-}
-
-// returns every available North East, South East,
-// South West or North West cell including the times that
-// you would be squeezing through a "crack"
-function DiagonalNeighboursFree(myN, myS, myE, myW, N, S, E, W, result) {
-	myN = N > -1;
-	myS = S < this.worldHeight;
-	myE = E < this.worldWidth;
-	myW = W > -1;
-	if(myE) {
-		if(myN && this.this.canWalk(E, N))
-		  result.push({x:E, y:N});
-		if(myS && this.this.canWalk(E, S))
-		  result.push({x:E, y:S});
-	}
-	if(myW) {
-		if(myN && this.this.canWalk(W, N))
-      result.push({x:W, y:N});
-		if(myS && this.this.canWalk(W, S))
-      result.push({x:W, y:S});
-	}
-}
-
 export default class AStar {
   constructor(board) {
     this.cameFrom = new Map();
 
     this.distanceCost = EuclideanDistance;
 
-    this.get = (x, y) => board.get(x, y);
+    this.getCostFromBoard = (point) => board.getCost(point);
+
     this.worldSize = board.width * board.height;
     this.worldWidth = board.width;
     this.worldHeight = board.height;
@@ -108,8 +47,8 @@ export default class AStar {
     const closeSet = [];
     const openSet = new BinaryHeap((a, b) => {});
 
-    const startNode = new Node(this.worldSize, null, start);
-    const goalNode = new Node(this.worldSize, null, goal);
+    const startNode = new Node(this.worldWidth, null, start);
+    const goalNode = new Node(this.worldWidth, null, goal);
 
     openSet.push(startNode);
     const visitedNodes = [];
@@ -117,7 +56,9 @@ export default class AStar {
     while (openSet.length > 0) {
 			console.log('openset:', openSet);
       const node = openSet.pop();
+			console.log('current:', node);
       if (node.value === goalNode.value) {
+				console.log('goal reached!');
         const result = [];
         let path = closeSet[closeSet.push(node) - 1];
         do {
@@ -126,37 +67,76 @@ export default class AStar {
         return result.reverse();
       }
       closeSet.push(node);
-      this.findNeighbours()
+      this.findNeighbours(node)
         .forEach(neighbour => {
-          const current = new Node(node, neighbour);
-          if (!visitedNodes[current.value]) {
-            current.g = node.g + this.costEstimate(current, node);
-            current.f = node.f + this.costEstimate(current);
-            openSet.push(current);
-            visitedNodes[current.value] = true;
+					console.log('neighbour:', neighbour);
+          if (!visitedNodes[neighbour.value]) {
+            neighbour.g = node.g + this.costEstimate(neighbour, node);
+            neighbour.f = node.f + this.costEstimate(neighbour, goalNode);
+            openSet.push(neighbour);
+            visitedNodes[neighbour.value] = true;
+						console.log('node not visited, push it to openSet');
           }
         });
     }
     return [];
   }
 
-  findNeighbours() {
-      return [];
+  findNeighbours(current) {
+		const neighbours = [];
+
+		const N = new Node(this.worldWidth, null, { x: current.x, y: current.y - 1});
+		const S = new Node(this.worldWidth, null, { x: current.x, y: current.y + 1});
+		const W = new Node(this.worldWidth, null, { x: current.x - 1, y: current.y});
+		const E = new Node(this.worldWidth, null, { x: current.x + 1, y: current.y});
+
+		[ N, S, E, W ]
+			.forEach(point => {
+				if (this.canWalk(point)) {
+					neighbours.push(point);
+				}
+			});
+
+		const NW = new Node(this.worldWidth, null, { x: current.x - 1, y: current.y - 1});
+		const NE = new Node(this.worldWidth, null, { x: current.x + 1, y: current.y - 1});
+		const SW = new Node(this.worldWidth, null, { x: current.x - 1, y: current.y + 1});
+		const SE = new Node(this.worldWidth, null, { x: current.x + 1, y: current.y + 1});
+
+		if (this.canWalk(N)) {
+			if (this.canWalk(W) && this.canWalk(NW)) {
+				neighbours.push(NW);
+			}
+			if (this.canWalk(E) && this.canWalk(NE)) {
+				neighbours.push(NE);
+			}
+		}
+		if (this.canWalk(S)) {
+			if (this.canWalk(W) && this.canWalk(SW)) {
+				neighbours.push(SW);
+			}
+			if (this.canWalk(E) && this.canWalk(SE)) {
+				neighbours.push(SE);
+			}
+		}
+
+		console.log('neighbours found:', neighbours);
+    return neighbours;
   }
 
-  costEstimate(current) {
-    return max(current.x, current.y) + (sqrt(2) - 1) * min(current.x, current.y);
+  costEstimate(current, next) {
+    return EuclideanDistance(current, next);
   }
 
   canWalk(current) {
     const cost = this.getCost(current);
+		console.log('cost for', current, 'is', cost);
     return cost < 255;
   }
 
   getCost(current) {
-    const cell = this.get(current);
-    if (cell) {
-      return cell.cost;
+    const cost = this.getCostFromBoard(current);
+    if (cost != null) {
+      return cost;
     }
     return 255;
   }

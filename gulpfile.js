@@ -5,6 +5,8 @@ const browserify = require('browserify');
 const babelify = require('babelify');
 const source = require('vinyl-source-stream');
 const browserSync = require('browser-sync');
+const sourcemaps = require('gulp-sourcemaps');
+const buffer = require('vinyl-buffer');
 
 const server = browserSync.create('dev-server');
 
@@ -19,6 +21,9 @@ gulp.task('build', function () {
       this.emit('end');
     })
     .pipe(source('bundle.js'))
+    .pipe(buffer())
+    .pipe(sourcemaps.init({loadMaps: true}))
+    .pipe(sourcemaps.write('./'))
     .pipe(gulp.dest('dist'))
     .pipe(server.stream({ once: true }));
 });

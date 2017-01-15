@@ -6,6 +6,7 @@ export default class Board extends Component {
 	constructor() {
   	super();
   	this.grid = [];
+		this.cellCosts = [];
     this.state = {
     	points: [],
       start: { x: -1, y: -1 },
@@ -13,8 +14,8 @@ export default class Board extends Component {
     };
   }
 
-	get(point) {
-		return this.grid[point.y][point.x];
+	getCost(point) {
+		return this.cellCosts[point.value];
 	}
 
 	findGoal(path) {
@@ -49,7 +50,10 @@ export default class Board extends Component {
     	const line = [];
       for(let w=0; w<this.width; ++w) {
       	const key = `${w}-${h}`;
-      	line.push(<Cell key={key} point={{x:w,y:h}} size={size} onNewGoal={onNewGoal} />);
+				const cost = parseInt(Math.random() * 255);
+
+      	line.push(<Cell key={key} point={{x:w,y:h}} size={size} cost={cost.toString(16)} onNewGoal={onNewGoal} />);
+				this.cellCosts.push(cost);
       }
       this.grid.push(line);
     }
