@@ -46,15 +46,19 @@ export default class Board extends Component {
 	const { map, size, onNewGoal } = this.props;
 
 		const mapSizeTokens = map.split('x');
-		this.width = parseInt(mapSizeTokens[0]);
-		this.height = parseInt(mapSizeTokens[1]);
+		const width = parseInt(mapSizeTokens[0]);
+		const height = parseInt(mapSizeTokens[1]);
+		this.world = {
+			width,
+			height
+		};
 
-		for(let h=0; h<this.height; ++h) {
+		for(let h=0; h<height; ++h) {
 			const line = [];
-			for(let w=0; w<this.width; ++w) {
+			for(let w=0; w<width; ++w) {
 			const key = `${w}-${h}`;
 			const cost = parseInt(Math.random() * 256);
-			const node = new Node(this.width, null, {x:w,y:h})
+			const node = new Node(this.world, null, {x:w,y:h})
 
 			line.push(<Cell key={key} point={node} size={size} cost={cost.toString(16)} onNewGoal={onNewGoal} />);
 			this.cellCosts[node.value] = cost;
@@ -80,14 +84,14 @@ export default class Board extends Component {
 		});
 		const style = {
 			position: 'relative',
-			width: this.props.size * this.width
+			width: this.props.size * this.world.width
 		};
 		const svgStyle = {
 			position: 'absolute',
 			top: 0,
 			left: 0,
-			width: this.props.size * this.width,
-			height: this.props.size * this.height
+			width: this.props.size * this.world.width,
+			height: this.props.size * this.world.height
 		};
 		const size = this.props.size;
 		const start = {
@@ -104,7 +108,7 @@ export default class Board extends Component {
 		const debugStyle = {
 			borderTop: 'solid #000066 1px'
 		};
-		const viewBox = `0 0 ${this.width * size} ${this.height * size}`;
+		const viewBox = `0 0 ${this.world.width * size} ${this.world.height * size}`;
 		return (<div style={style}>
 			{board}
 			<svg style={svgStyle} viewBox={viewBox} version="1.1">

@@ -32,23 +32,23 @@ function OctileDistance() {
 
 export default class AStar {
 	constructor(board) {
-		this.cameFrom = new Map();
-
-		this.distanceCost = EuclideanDistance;
-
 		this.getCostFromBoard = (point) => board.getCost(point);
 
-		this.worldSize = board.width * board.height;
-		this.worldWidth = board.width;
-		this.worldHeight = board.height;
+		this.world = {
+			width: board.world.width,
+			height: board.world.height,
+			size: board.world.width * board.world.height
+		};
 	}
 
 	find(start, goal) {
 		const closeSet = [];
-		const openSet = new BinaryHeap((a, b) => {});
+		const openSet = new BinaryHeap((a, b) => {
 
-		const startNode = new Node(this.worldWidth, null, start);
-		const goalNode = new Node(this.worldWidth, null, goal);
+		});
+
+		const startNode = new Node(this.world, null, start);
+		const goalNode = new Node(this.world, null, goal);
 
 		openSet.push(startNode);
 		const visitedNodes = [];
@@ -70,7 +70,7 @@ export default class AStar {
 				.forEach(neighbour => {
 					if (!visitedNodes[neighbour.value]) {
 						neighbour.g = node.g + this.costEstimate(neighbour, node);
-						neighbour.f = node.f + this.costEstimate(neighbour, goalNode);
+						neighbour.h = node.h + this.costEstimate(neighbour, goalNode);
 						openSet.push(neighbour);
 						visitedNodes[neighbour.value] = true;
 					}
@@ -83,10 +83,10 @@ export default class AStar {
 	findNeighbours(current) {
 		const neighbours = [];
 
-		const N = new Node(this.worldWidth, current, { x: current.x, y: current.y - 1});
-		const S = new Node(this.worldWidth, current, { x: current.x, y: current.y + 1});
-		const W = new Node(this.worldWidth, current, { x: current.x - 1, y: current.y});
-		const E = new Node(this.worldWidth, current, { x: current.x + 1, y: current.y});
+		const N = new Node(this.world, current, { x: current.x, y: current.y - 1});
+		const S = new Node(this.world, current, { x: current.x, y: current.y + 1});
+		const W = new Node(this.world, current, { x: current.x - 1, y: current.y});
+		const E = new Node(this.world, current, { x: current.x + 1, y: current.y});
 
 		[ N, S, E, W ]
 			.forEach(point => {
@@ -95,10 +95,10 @@ export default class AStar {
 				}
 			});
 
-		const NW = new Node(this.worldWidth, current, { x: current.x - 1, y: current.y - 1});
-		const NE = new Node(this.worldWidth, current, { x: current.x + 1, y: current.y - 1});
-		const SW = new Node(this.worldWidth, current, { x: current.x - 1, y: current.y + 1});
-		const SE = new Node(this.worldWidth, current, { x: current.x + 1, y: current.y + 1});
+		const NW = new Node(this.world, current, { x: current.x - 1, y: current.y - 1});
+		const NE = new Node(this.world, current, { x: current.x + 1, y: current.y - 1});
+		const SW = new Node(this.world, current, { x: current.x - 1, y: current.y + 1});
+		const SE = new Node(this.world, current, { x: current.x + 1, y: current.y + 1});
 
 		if (this.canWalk(N)) {
 			if (this.canWalk(W) && this.canWalk(NW)) {
@@ -121,16 +121,18 @@ export default class AStar {
 	}
 
 	costEstimate(current, next) {
-		return EuclideanDistance(current, next);
+		const cost = this.getCostFromBoard(next);
+		return cost * EuclideanDistance(current, next);
 	}
 
 	canWalk(current) {
 		const cost = this.getCost(current);
-		return cost < 254;
+		return cost < 255;
 	}
 
 	getCost(current) {
 		const cost = this.getCostFromBoard(current);
+		console.log('cost for', current,'is', cost);
 		if (cost != null) {
 			return cost;
 		}
