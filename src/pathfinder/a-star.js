@@ -121,7 +121,7 @@ export default class AStar {
 	}
 
 	costEstimate(current, next) {
-		const cost = this.getCostFromBoard(next);
+		const cost = this.getCostFromBoard(next) / 255;
 		return cost * EuclideanDistance(current, next);
 	}
 
@@ -132,7 +132,6 @@ export default class AStar {
 
 	getCost(current) {
 		const cost = this.getCostFromBoard(current);
-		console.log('cost for', current,'is', cost);
 		if (cost != null) {
 			return cost;
 		}

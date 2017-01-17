@@ -1,7 +1,7 @@
 export default class Node {
 	constructor(world, parent, point) {
 		this.parent = parent;
-		this.value = point.x + point.y * world.width;
+		this.value = (world.width - point.x) + point.y * world.width;
 		this.x = point.x;
 		this.y = point.y;
 		this.f = 0;

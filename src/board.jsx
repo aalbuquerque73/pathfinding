@@ -56,14 +56,14 @@ export default class Board extends Component {
 		for(let h=0; h<height; ++h) {
 			const line = [];
 			for(let w=0; w<width; ++w) {
-			const key = `${w}-${h}`;
-			const cost = parseInt(Math.random() * 256);
-			const node = new Node(this.world, null, {x:w,y:h})
+				const key = `${w}-${h}`;
+				const cost = parseInt(Math.random() * 256);
+				const node = new Node(this.world, null, {x:w,y:h})
 
-			line.push(<Cell key={key} point={node} size={size} cost={cost.toString(16)} onNewGoal={onNewGoal} />);
-			this.cellCosts[node.value] = cost;
-		}
-		this.grid.push(line);
+				line.push(<Cell key={key} point={node} size={size} cost={cost} costs={this.cellCosts} onNewGoal={onNewGoal} />);
+				this.cellCosts[node.value] = cost;
+			}
+			this.grid.push(line);
 		}
 	this.pathfinder = new Pathfind(this);
 	}
