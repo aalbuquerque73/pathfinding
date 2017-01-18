@@ -26,7 +26,7 @@ export default class Board extends Component {
 		});
 		if (this.pathfinder) {
 			const pathToGoal = this.pathfinder.find(path.start, path.goal);
-			console.log('Path to goal:', pathToGoal.map(node => ({ x: node.x, y: node.y })));
+			console.log('Path to goal:', pathToGoal.map(node => node.value));
 			this.setState({
 				points: pathToGoal
 			});
@@ -57,15 +57,15 @@ export default class Board extends Component {
 			const line = [];
 			for(let w=0; w<width; ++w) {
 				const key = `${w}-${h}`;
-				const cost = parseInt(Math.random() * 256);
-				const node = new Node(this.world, null, {x:w,y:h})
+				const cost = Math.round(Math.random() * 256);
+				const node = new Node(this.world, {x:w,y:h})
 
 				line.push(<Cell key={key} point={node} size={size} cost={cost} costs={this.cellCosts} onNewGoal={onNewGoal} />);
 				this.cellCosts[node.value] = cost;
 			}
 			this.grid.push(line);
 		}
-	this.pathfinder = new Pathfind(this);
+		this.pathfinder = new Pathfind(this);
 	}
 
 	componentDidMount() {

@@ -42,13 +42,10 @@ export default class AStar {
 	}
 
 	find(start, goal) {
-		const closeSet = [];
-		const openSet = new BinaryHeap((a, b) => {
+		const openSet = new BinaryHeap((a, b) => a.f < b.f);
 
-		});
-
-		const startNode = new Node(this.world, null, start);
-		const goalNode = new Node(this.world, null, goal);
+		const startNode = new Node(this.world, start);
+		const goalNode = new Node(this.world, goal);
 
 		openSet.push(startNode);
 		const visitedNodes = [];
@@ -58,21 +55,25 @@ export default class AStar {
 			if (node.value === goalNode.value) {
 				console.log('goal reached!');
 				const result = [];
-				let path = closeSet[closeSet.push(node) - 1];
+				let path = node;
 				do {
 					result.push(path);
 				} while (path = path.parent);
 
 				return result.reverse();
 			}
-			closeSet.push(node);
 			this.findNeighbours(node)
 				.forEach(neighbour => {
+					const g = node.g + this.costEstimate(neighbour, node);
 					if (!visitedNodes[neighbour.value]) {
-						neighbour.g = node.g + this.costEstimate(neighbour, node);
-						neighbour.h = node.h + this.costEstimate(neighbour, goalNode);
+						neighbour.g = g;
+						neighbour.h = node.h + this.costEstimate(neighbour, goalNode, true);
+						neighbour.parent = node;
 						openSet.push(neighbour);
-						visitedNodes[neighbour.value] = true;
+						visitedNodes[neighbour.value] = neighbour;
+					} else if (g < neighbour.g) {
+						neighbour.g = g;
+						neighbour.parent = node;
 					}
 				});
 		}
@@ -83,45 +84,31 @@ export default class AStar {
 	findNeighbours(current) {
 		const neighbours = [];
 
-		const N = new Node(this.world, current, { x: current.x, y: current.y - 1});
-		const S = new Node(this.world, current, { x: current.x, y: current.y + 1});
-		const W = new Node(this.world, current, { x: current.x - 1, y: current.y});
-		const E = new Node(this.world, current, { x: current.x + 1, y: current.y});
+		const N = new Node(this.world, { x: current.x, y: current.y - 1});
+		const S = new Node(this.world, { x: current.x, y: current.y + 1});
+		const W = new Node(this.world, { x: current.x - 1, y: current.y});
+		const E = new Node(this.world, { x: current.x + 1, y: current.y});
 
-		[ N, S, E, W ]
+		const NW = new Node(this.world, { x: current.x - 1, y: current.y - 1});
+		const NE = new Node(this.world, { x: current.x + 1, y: current.y - 1});
+		const SW = new Node(this.world, { x: current.x - 1, y: current.y + 1});
+		const SE = new Node(this.world, { x: current.x + 1, y: current.y + 1});
+
+		[ N, S, E, W, NW, NE, SW, SE ]
 			.forEach(point => {
 				if (this.canWalk(point)) {
 					neighbours.push(point);
 				}
 			});
 
-		const NW = new Node(this.world, current, { x: current.x - 1, y: current.y - 1});
-		const NE = new Node(this.world, current, { x: current.x + 1, y: current.y - 1});
-		const SW = new Node(this.world, current, { x: current.x - 1, y: current.y + 1});
-		const SE = new Node(this.world, current, { x: current.x + 1, y: current.y + 1});
-
-		if (this.canWalk(N)) {
-			if (this.canWalk(W) && this.canWalk(NW)) {
-				neighbours.push(NW);
-			}
-			if (this.canWalk(E) && this.canWalk(NE)) {
-				neighbours.push(NE);
-			}
-		}
-		if (this.canWalk(S)) {
-			if (this.canWalk(W) && this.canWalk(SW)) {
-				neighbours.push(SW);
-			}
-			if (this.canWalk(E) && this.canWalk(SE)) {
-				neighbours.push(SE);
-			}
-		}
-
 		return neighbours;
 	}
 
-	costEstimate(current, next) {
-		const cost = this.getCostFromBoard(next) / 255;
+	costEstimate(current, next, skipCost) {
+		if (skipCost) {
+			return EuclideanDistance(current, next);
+		}
+		const cost = this.getCostFromBoard(next);
 		return cost * EuclideanDistance(current, next);
 	}
 
