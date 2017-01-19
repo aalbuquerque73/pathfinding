@@ -29,6 +29,7 @@ export default class Board extends Component {
 			console.log('Path to goal:', pathToGoal.map(node => node.value));
 			this.setState({
 				points: pathToGoal
+				//points: [ path.start, path.goal ]
 			});
 		} else {
 			this.setState({
@@ -53,12 +54,12 @@ export default class Board extends Component {
 			height
 		};
 
-		for(let h=0; h<height; ++h) {
+		for(let y = 0; y < height; ++y) {
 			const line = [];
-			for(let w=0; w<width; ++w) {
-				const key = `${w}-${h}`;
+			for(let x = 0; x < width; ++x) {
+				const key = `${x}-${y}`;
 				const cost = Math.round(Math.random() * 256);
-				const node = new Node(this.world, {x:w,y:h})
+				const node = new Node(this.world, {x, y})
 
 				line.push(<Cell key={key} point={node} size={size} cost={cost} costs={this.cellCosts} onNewGoal={onNewGoal} />);
 				this.cellCosts[node.value] = cost;

@@ -55,7 +55,7 @@ class App extends Component {
 }
 
 $(function() {
-  const size = 10;
+  const size = 20;
   const width = 10;
   const height = 10;
 

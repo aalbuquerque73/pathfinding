@@ -34,23 +34,23 @@ function bubbleUp(data, pos, comp = (a,b) => a > b) {
 export default class BinaryHeap {
 	constructor(comp = (a,b) => a > b) {
 		this.data = [];
-    this._comp = comp;
-  }
+		this._comp = comp;
+	}
 
-  pop() {
-  	const value = this.data.shift();
-    const last = this.data.pop();
-    if (this.data.length > 0) {
-    	this.data.unshift(last);
-      bubbleDown(this.data, 0, this._comp);
-    }
-    return value;
-  }
+	pop() {
+		const value = this.data.shift();
+		const last = this.data.pop();
+		if (last) {
+			this.data.unshift(last);
+			bubbleDown(this.data, 0, this._comp);
+		}
+		return value;
+	}
 
-  push(value) {
-  	this.data.push(value);
-    bubbleUp(this.data, this.data.length - 1, this._comp);
-  }
+	push(value) {
+		this.data.push(value);
+		bubbleUp(this.data, this.data.length - 1, this._comp);
+	}
 
 	map(...args) {
 		return this.data.map(...args);

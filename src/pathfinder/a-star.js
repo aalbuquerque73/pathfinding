@@ -1,5 +1,5 @@
 import BinaryHeap from './binary-heap';
-import Node from './node';
+import Node, { calculateValue } from './node';
 
 const abs = Math.abs;
 const max = Math.max;
@@ -32,24 +32,40 @@ function OctileDistance() {
 
 export default class AStar {
 	constructor(board) {
-		this.getCostFromBoard = (point) => board.getCost(point);
-
 		this.world = {
 			width: board.world.width,
 			height: board.world.height,
 			size: board.world.width * board.world.height
+		};
+
+		console.log('construct grid...');
+		this.grid = [];
+		for(let y = 0; y < board.world.height; ++y) {
+			for (let x = 0; x < board.world.width; ++x) {
+				const node = new Node(board.world, {x, y});
+				node.cost = board.getCost(node);
+				this.grid[node.value] = node;
+			}
+		}
+		this.grid.findNode = function(point) {
+			const value = calculateValue(board.world, point);
+			console.log('find node:', value, this[value]);
+			return this[value];
 		};
 	}
 
 	find(start, goal) {
 		const openSet = new BinaryHeap((a, b) => a.f < b.f);
 
-		const startNode = new Node(this.world, start);
-		const goalNode = new Node(this.world, goal);
+		const startNode = this.grid.findNode(start);
+		const goalNode = this.grid.findNode(goal);
 
-		openSet.push(startNode);
-		const visitedNodes = [];
 		console.log('starting...');
+		this.grid.forEach(n => n.reset());
+		startNode.reset(this.costEstimate(startNode, goalNode, true));
+		startNode.visited = true;
+		openSet.push(startNode);
+
 		while (openSet.length > 0) {
 			const node = openSet.pop();
 			if (node.value === goalNode.value) {
@@ -57,7 +73,12 @@ export default class AStar {
 				const result = [];
 				let path = node;
 				do {
+					if (path.pushed) {
+						break;
+					}
+					console.log('path:', path);
 					result.push(path);
+					path.pushed = true;
 				} while (path = path.parent);
 
 				return result.reverse();
@@ -65,15 +86,16 @@ export default class AStar {
 			this.findNeighbours(node)
 				.forEach(neighbour => {
 					const g = node.g + this.costEstimate(neighbour, node);
-					if (!visitedNodes[neighbour.value]) {
+					if (!neighbour.visited) {
 						neighbour.g = g;
 						neighbour.h = node.h + this.costEstimate(neighbour, goalNode, true);
 						neighbour.parent = node;
 						openSet.push(neighbour);
-						visitedNodes[neighbour.value] = neighbour;
-					} else if (g < neighbour.g) {
-						neighbour.g = g;
-						neighbour.parent = node;
+						console.log('open set:', openSet.map(n => n.f));
+						neighbour.visited = true;
+					//} else if (g < neighbour.g) {
+					//	neighbour.g = g;
+					//	neighbour.parent = node;
 					}
 				});
 		}
@@ -84,19 +106,19 @@ export default class AStar {
 	findNeighbours(current) {
 		const neighbours = [];
 
-		const N = new Node(this.world, { x: current.x, y: current.y - 1});
-		const S = new Node(this.world, { x: current.x, y: current.y + 1});
-		const W = new Node(this.world, { x: current.x - 1, y: current.y});
-		const E = new Node(this.world, { x: current.x + 1, y: current.y});
+		const N = this.grid.findNode({ x: current.x, y: current.y - 1});
+		const S = this.grid.findNode({ x: current.x, y: current.y + 1});
+		const W = this.grid.findNode({ x: current.x - 1, y: current.y});
+		const E = this.grid.findNode({ x: current.x + 1, y: current.y});
 
-		const NW = new Node(this.world, { x: current.x - 1, y: current.y - 1});
-		const NE = new Node(this.world, { x: current.x + 1, y: current.y - 1});
-		const SW = new Node(this.world, { x: current.x - 1, y: current.y + 1});
-		const SE = new Node(this.world, { x: current.x + 1, y: current.y + 1});
+		const NW = this.grid.findNode({ x: current.x - 1, y: current.y - 1});
+		const NE = this.grid.findNode({ x: current.x + 1, y: current.y - 1});
+		const SW = this.grid.findNode({ x: current.x - 1, y: current.y + 1});
+		const SE = this.grid.findNode({ x: current.x + 1, y: current.y + 1});
 
 		[ N, S, E, W, NW, NE, SW, SE ]
 			.forEach(point => {
-				if (this.canWalk(point)) {
+				if (point && this.canWalk(point)) {
 					neighbours.push(point);
 				}
 			});
@@ -108,19 +130,21 @@ export default class AStar {
 		if (skipCost) {
 			return EuclideanDistance(current, next);
 		}
-		const cost = this.getCostFromBoard(next);
+		const cost = this.getCost(next);
 		return cost * EuclideanDistance(current, next);
 	}
 
 	canWalk(current) {
-		const cost = this.getCost(current);
-		return cost < 255;
+		if (current) {
+			const cost = this.getCost(current);
+			return cost < 255;
+		}
+		return false;
 	}
 
 	getCost(current) {
-		const cost = this.getCostFromBoard(current);
-		if (cost != null) {
-			return cost;
+		if (current) {
+			return current.cost;
 		}
 		return 255;
 	}
