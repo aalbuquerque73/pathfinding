@@ -1,0 +1,10 @@
+#
+# Pathfinder
+#
+name: MF
+mux: tmux
+
+[workspace]
+npm start
+- vsplit
+npm run build
