@@ -1,0 +1,173 @@
+#!/usr/bin/env node
+'use strict';
+
+const fs=require('fs');
+const os = require('os');
+const path = require('path');
+const Q=require('q');
+const spawn = require('child_process').spawn;
+
+const States = {
+    HEADER: 0,
+    BODY: 1
+};
+
+const config = {
+    mux: 'tmux',
+    id: `mucks${process.pid}`,
+    dir: '.',
+    name: 'mucks - ' + __dirname,
+    tmp: os.tmpdir()
+};
+
+function parse_header(lines) {
+    while (lines.length > 0 && lines[0].substr(0,1) !== '[') {
+        const line = lines.shift();
+        if (line.substr(0, 1) === '#') {
+            continue;
+        }
+        const tokens = line && line.split(':').map(token => token && token.trim()) || [];
+        if (config.hasOwnProperty(tokens[0])) {
+            config[tokens[0]] = tokens[1];
+        }
+    }
+    return true;
+}
+
+const parser = {
+    options: { cwd: config.dir, shell: true },
+
+    window(workspace) {
+        console.log(`\x1b]0;${config.name}\x07`);
+        if (!this.running) {
+            this.running = true;
+            run(`tmux -L ${config.id} new-session -d -s ${config.id} -n ${workspace}`, this.options);
+        } else {
+            run(`tmux -L ${config.id} new-window -n ${workspace}`, this.options);
+        }
+    },
+    split() {
+        this.hsplit();
+    },
+    hsplit() {
+        run('tmux', [ '-L', config.id, 'split-window', '-v' ], this.options);
+    },
+    vsplit() {
+        run('tmux', [ '-L', config.id, 'split-window', '-h' ], this.options);
+    },
+    pane(pane) {
+        run('tmux', [ '-L', config.id, 'select-pane', '-t', pane ], this.options);
+    },
+    layout(layout) {
+        run('tmux',  [ '-L', config.id, 'select-layout', '-t', layout ], this.options);
+    },
+    exec(cmd) {
+        run('tmux', [ '-L', config.id, 'send-keys', `"${cmd}"`, 'C-m' ], this.options);
+    },
+    sleep(sleep) {
+        run('sleep', [ sleep ], this.options);
+    }
+};
+
+function parse_layout(lines) {
+    const parse = (match, workspace, cmd, cmdArgs, args) => {
+        if (workspace) {
+            parser.window(workspace);
+        } else if (cmd && parser.hasOwnProperty(cmd)) {
+            parser[cmd](cmdArgs);
+        } else if (args) {
+            parser.exec(args);
+        }
+    };
+    lines.forEach(line => {
+        line && typeof line === 'string' && line.replace(/^\s*(?:\[([^\]]+)|-\s*([\w_-]+)(?:\s+(.*))?|(.*))/, parse);
+    });
+}
+
+function parse_config(filename) {
+    let state = States.HEADER;
+    Q.nfcall(fs.readFile, filename)
+        .then(text => text.toString('utf-8').split('\n').map(text => text && text.trim()))
+        .then(lines => {
+            return Q.spawn(function* () {
+                console.log(`tmux -L ${config.id}`);
+                yield parse_header(lines);
+                yield parse_layout(lines);
+                run('tmux', [ '-L', config.id, 'attach-session', '-t', config.id ], { cwd: config.dir, stdio: 'inherit' });
+            });
+        })
+        .catch(console.error);
+}
+
+const runQueue = {
+    is: {
+        running: false,
+        empty: true,
+
+        get not() {
+            const self = this;
+            return {
+                get running() { return !self.running; },
+                set running(flag) { self.running = !flag; },
+                get empty() { return !self.empty; },
+                set empty(flag) { self.empty = !flag; },
+            };
+        }
+    },
+    queue: [],
+    push(cmd, args, options) {
+        this.queue.push({ cmd, args, options });
+        this.is.not.empty = true;
+        this.start();
+    },
+    start() {
+        if (this.is.not.running) {
+            this.is.running = true;
+            const current = this.queue.shift();
+            Q.Promise((resolve, reject) => {
+                const p = spawn(current.cmd, current.args, current.options);
+
+                p.stdout && p.stdout.on('data', (data) => {
+                    console.log(`stdout: ${data}`);
+                });
+
+                p.stderr && p.stderr.on('data', (data) => {
+                    console.log(`stderr: ${data}`);
+                });
+
+                p.on('error', err => {
+                    console.error('Error:', err);
+                });
+
+                p.on('close', code => {
+                    this.is.not.running = true;
+                    !code && resolve() || reject(code);
+                });
+            })
+                .then(() => {
+                    if (this.queue.length > 0) {
+                        process.nextTick(() => {
+                            this.start();
+                        });
+                    }
+                })
+                .catch(code => {
+                    console.log(`child process exited with code ${code} (queue: ${this.queue.length})`);
+                });
+        }
+    }
+};
+
+function run(cmd, args, options) {
+    runQueue.push(cmd, args, options);
+}
+
+Q.nfcall(fs.access, process.argv[2])
+    .then(() => process.argv[2])
+    .catch(err => {
+        console.log(`Error: ${process.argv[2] || 'file'} not specified or not found in the current directory`);
+        return Q.nfcall(fs.access, '.mucksrc')
+            .then(() => '.mucksrc');
+    })
+    .then(filename => parse_config(filename))
+    .catch(err => console.log('Error: .mucksrc not found in the current directory'));
