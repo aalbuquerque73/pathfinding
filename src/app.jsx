@@ -47,7 +47,7 @@ class App extends Component {
           <div className="node goal">goal: ({goal.x}, {goal.y})</div>
         </div>
         <div className="command">
-          <button className="button reload" onClick={reload}>Reload</button>
+          <button className="button reload" onClick={reload}>Reload App</button>
         </div>
       </div>
     );
