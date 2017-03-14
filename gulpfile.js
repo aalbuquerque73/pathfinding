@@ -28,7 +28,13 @@ gulp.task('build', function () {
 		.pipe(server.stream({ once: true }));
 });
 
-gulp.task('watch', ['build'], function () {
+gulp.task('static', function () {
+	return gulp.src([ 'foundation.css', 'index.html' ])
+		.pipe(gulp.dest('dist'))
+		.pipe(server.stream({ once: true }));
+});
+
+gulp.task('watch', ['build', 'static'], function () {
 		gulp.watch(['src/**/*.jsx', 'src/**/*.js'], ['build']);
 });
 
