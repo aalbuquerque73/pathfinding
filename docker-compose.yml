@@ -3,12 +3,17 @@ services:
 
   dev:
     build: build/node
+    image: dev:latest
     volumes:
-      - .:/app
+      - ./dist:/app/dist
+      - ./src:/app/src
 
   browser:
     build: build/bsync
+    image: bsync:latest
     volumes:
-      - .:/app
+      - ./dist:/app/dist
     ports:
       - "3000:3000"
+    depends_on:
+      - dev
